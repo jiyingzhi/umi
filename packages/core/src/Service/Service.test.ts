@@ -11,6 +11,13 @@ const simplyPluginIds = ({ cwd, plugins }: { cwd: string; plugins: any }) =>
     return `[${type}] ${id.replace(winPath(cwd), '.')}`;
   });
 
+const resetEnvironments = () => {
+  delete process.env.ENV_A;
+  delete process.env.ENV_B;
+  delete process.env.ENV_C;
+  delete process.env.ENV_D;
+};
+
 test('normal', async () => {
   const cwd = join(fixtures, 'normal');
   const service = new Service({
@@ -527,4 +534,60 @@ test('resolvePackage with APP_ROOT specified', () => {
     pkg: require(join(repoRoot, 'package.json')),
   });
   expect(service.pkg.name).toEqual('foo');
+});
+
+test('.env.development.local should take precedence over .env.development', async () => {
+  const cwd = join(fixtures, 'dotenvFiles');
+  new Service({
+    cwd,
+    env: 'development',
+  });
+
+  expect(process.env.ENV_A).toEqual('1');
+  resetEnvironments();
+});
+
+test('.env.local should take precedence over .env', async () => {
+  const cwd = join(fixtures, 'dotenvFiles');
+  new Service({
+    cwd,
+    env: 'development',
+  });
+
+  expect(process.env.ENV_B).toEqual('1');
+  resetEnvironments();
+});
+
+test('.env.development should take precedence over .env', async () => {
+  const cwd = join(fixtures, 'dotenvFiles');
+  new Service({
+    cwd,
+    env: 'development',
+  });
+
+  expect(process.env.ENV_C).toEqual('1');
+  resetEnvironments();
+});
+
+test('.env.development.local should take precedence over .env.local', async () => {
+  const cwd = join(fixtures, 'dotenvFiles');
+  new Service({
+    cwd,
+    env: 'development',
+  });
+
+  expect(process.env.ENV_D).toEqual('1');
+  resetEnvironments();
+});
+
+test('should ignore .env.local in test', async () => {
+  const cwd = join(fixtures, 'dotenvFiles');
+  new Service({
+    cwd,
+    env: 'test',
+  });
+
+  expect(process.env.ENV_B).not.toEqual('1');
+  expect(process.env.ENV_D).not.toEqual('2');
+  resetEnvironments();
 });
