@@ -108,7 +108,7 @@ export default class Service extends EventEmitter {
     // register babel before config parsing
     this.babelRegister = new BabelRegister();
 
-    // load .env or .local.env
+    // load .env files
     logger.debug('load env');
     this.loadEnv();
 
@@ -178,10 +178,25 @@ export default class Service extends EventEmitter {
   }
 
   loadEnv() {
-    const basePath = join(this.cwd, '.env');
-    const localPath = `${basePath}.local`;
-    loadDotEnv(basePath);
-    loadDotEnv(localPath);
+    const dotenvPath = join(this.cwd, '.env');
+
+    // https://github.com/facebook/create-react-app/blob/7e4949a20fc828577fb7626a3262832422f3ae3b/packages/react-scripts/config/env.js#L26
+    const dotenvFiles = [
+      `${dotenvPath}.${this.env}.local`,
+      // Don't include `.env.local` for `test` environment
+      // since normally you expect tests to produce the same
+      // results for everyone
+      this.env === 'test' ? '' : `${dotenvPath}.local`,
+      `${dotenvPath}.${this.env}`,
+      dotenvPath,
+    ].filter(Boolean);
+
+    // priority: .env.[NODE_ENV].local > .env.local > .env.[NODE_ENV] > .env
+    dotenvFiles.forEach((dotenvFile) => {
+      if (existsSync(dotenvFile)) {
+        loadDotEnv(dotenvFile);
+      }
+    });
   }
 
   async init() {
